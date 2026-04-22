@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Boxy bootstrap: runs as root, installs apt deps, clones the repo as notion,
-# and hands off to `make all`.
+# Boxy bootstrap: runs as root, installs apt deps, clones the repo as notion
+# (via gh CLI, since notion-dotfiles is private and boxies auth to GitHub with
+# GH_TOKEN rather than an ssh key), then hands off to `make all`.
 set -euo pipefail
 
 NOTION_USER=notion
-REPO=https://github.com/ehhong/notion-dotfiles.git
+SLUG=ehhong/notion-dotfiles
 DEST=/home/$NOTION_USER/notion-dotfiles
 
 export DEBIAN_FRONTEND=noninteractive
@@ -16,7 +17,7 @@ sudo -u "$NOTION_USER" -H bash -lc "
   if [ -d '$DEST/.git' ]; then
     cd '$DEST' && git pull --ff-only
   else
-    git clone '$REPO' '$DEST' && cd '$DEST'
+    gh repo clone '$SLUG' '$DEST' && cd '$DEST'
   fi
   make all
 "
