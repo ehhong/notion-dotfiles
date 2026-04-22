@@ -9,10 +9,12 @@ From your laptop:
 ```sh
 BOXY=your--boxy-name
 scp init.sh $BOXY.boxy.makenotion.com:/tmp/init.sh
-ssh $BOXY.boxy.makenotion.com "sudo bash /tmp/init.sh && rm /tmp/init.sh"
+ssh $BOXY.boxy.makenotion.com "bash /tmp/init.sh && rm /tmp/init.sh"
 ```
 
-That clones this repo to `/home/notion/notion-dotfiles`, runs `make all`, and you're done.
+Runs as `notion` (not root) so that `GH_TOKEN` is available for `gh repo clone`
+on this private repo; the script uses `sudo` inline for apt. That clones the
+repo to `/home/notion/notion-dotfiles`, runs `make all`, and you're done.
 
 ## What's in here
 

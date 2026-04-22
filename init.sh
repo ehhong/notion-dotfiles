@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
-# Boxy bootstrap: runs as root, installs apt deps, clones the repo as notion
-# (via gh CLI, since notion-dotfiles is private and boxies auth to GitHub with
-# GH_TOKEN rather than an ssh key), then hands off to `make all`.
+# Boxy bootstrap: runs as notion (NOT root). Uses sudo inline for apt so that
+# GH_TOKEN (which boxies inject into notion's interactive session but not into
+# root's env) is preserved for `gh repo clone` on private repos.
 set -euo pipefail
 
-NOTION_USER=notion
+if [[ "$(id -un)" != "notion" ]]; then
+  echo "This script must be run as notion, not $(id -un). Invoke without sudo." >&2
+  exit 1
+fi
+
 SLUG=ehhong/notion-dotfiles
-DEST=/home/$NOTION_USER/notion-dotfiles
+DEST=$HOME/notion-dotfiles
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y git make sudo
+sudo -E apt-get update
+sudo -E apt-get install -y git make
 
-sudo -u "$NOTION_USER" -H bash -lc "
-  set -euo pipefail
-  if [ -d '$DEST/.git' ]; then
-    cd '$DEST' && git pull --ff-only
-  else
-    gh repo clone '$SLUG' '$DEST' && cd '$DEST'
-  fi
-  make all
-"
+if [ -d "$DEST/.git" ]; then
+  cd "$DEST"
+  git pull --ff-only
+else
+  gh repo clone "$SLUG" "$DEST"
+  cd "$DEST"
+fi
+
+make all
