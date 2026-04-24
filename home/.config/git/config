@@ -1,0 +1,9 @@
+# User-level git config loaded alongside ~/.gitconfig (per XDG: git reads both
+# ~/.gitconfig and ~/.config/git/config when present, in that order). Keeping
+# aliases here avoids clobbering the boxy-managed ~/.gitconfig identity and
+# credential-helper entries.
+
+[alias]
+	# force-push, but abort if the remote moved since our last fetch — safer
+	# than --force for shared branches.
+	fp = push --force-with-lease
