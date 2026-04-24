@@ -28,7 +28,7 @@ repo to `/home/notion/notion-dotfiles`, runs `make all`, and you're done.
 |------------|-----------------------------------------------------------------|
 | `all`      | `deps` → `fish` → `symlinks` → `nvim` → `warmup`                |
 | `deps`     | apt: git, curl, ripgrep, fd-find, build-essential, tar          |
-| `fish`     | apt install fish + `chsh` to fish for `$USER`                   |
+| `fish`     | apt install fish; bash stays the login shell and `~/.bashrc` exec's fish for interactive sessions (so non-interactive SSH commands like notion-next's shell probe still work) |
 | `symlinks` | mirror `home/` into `$HOME` as symlinks (backs up non-symlinks) |
 | `nvim`     | install Neovim v0.11.2 (tarball, then source fallback)          |
 | `warmup`   | background: `Lazy! restore`, `TSInstallSync`, Mason             |

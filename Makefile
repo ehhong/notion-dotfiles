@@ -22,15 +22,18 @@ deps:  ## apt packages (git, curl, ripgrep, fd, build-essential)
 		echo "Linked fdfind → /usr/local/bin/fd"; \
 	fi
 
-fish:  ## install fish and set it as the login shell for the current user
+fish:  ## install fish (bash stays the login shell; .bashrc exec's fish for interactive sessions)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fish
-	@fish_path="$$(command -v fish)"; \
-	current="$$(getent passwd "$$USER" | cut -d: -f7)"; \
-	if [[ "$$current" == "$$fish_path" ]]; then \
-		echo "$$USER shell already set to $$fish_path"; \
-	else \
-		sudo chsh -s "$$fish_path" "$$USER" && echo "Updated $$USER shell to $$fish_path"; \
-	fi
+	@current="$$(getent passwd "$$USER" | cut -d: -f7)"; \
+	case "$$current" in \
+		*/fish) \
+			echo "Reverting login shell from fish to /bin/bash (interactive fish handoff is in ~/.bashrc)"; \
+			sudo chsh -s /bin/bash "$$USER"; \
+			;; \
+		*) \
+			echo "Login shell is $$current (leaving as-is; ~/.bashrc exec's fish for interactive sessions)"; \
+			;; \
+	esac
 
 symlinks:  ## mirror home/ into $HOME as symlinks (idempotent)
 	@set -euo pipefail; \
