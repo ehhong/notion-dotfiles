@@ -22,16 +22,16 @@ deps:  ## apt packages (git, curl, ripgrep, fd, build-essential)
 		echo "Linked fdfind → /usr/local/bin/fd"; \
 	fi
 
-fish:  ## install fish (bash stays the login shell; .bashrc exec's fish for interactive sessions)
+fish:  ## install fish (login shell is left as bash/zsh; .bashrc + .zshrc exec fish for interactive sessions)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fish
 	@current="$$(getent passwd "$$USER" | cut -d: -f7)"; \
 	case "$$current" in \
 		*/fish) \
-			echo "Reverting login shell from fish to /bin/bash (interactive fish handoff is in ~/.bashrc)"; \
+			echo "Reverting login shell from fish to /bin/bash (interactive fish handoff is in ~/.bashrc / ~/.zshrc)"; \
 			sudo chsh -s /bin/bash "$$USER"; \
 			;; \
 		*) \
-			echo "Login shell is $$current (leaving as-is; ~/.bashrc exec's fish for interactive sessions)"; \
+			echo "Login shell is $$current (leaving as-is; ~/.bashrc and ~/.zshrc exec fish for interactive sessions)"; \
 			;; \
 	esac
 
