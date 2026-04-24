@@ -1,13 +1,14 @@
 SHELL := /bin/bash
 
-REPO_ROOT    := $(CURDIR)
-HOME_DIR     := $(HOME)
-NVIM_VERSION := v0.11.2
+REPO_ROOT        := $(CURDIR)
+HOME_DIR         := $(HOME)
+NVIM_VERSION     := v0.11.2
+LAZYGIT_VERSION  := v0.44.1
 
 .DEFAULT_GOAL := help
-.PHONY: all deps fish symlinks nvim warmup clean help
+.PHONY: all deps fish symlinks nvim lazygit warmup clean help
 
-all: deps fish symlinks nvim warmup  ## full boxy bootstrap (deps → fish → symlinks → nvim → warmup)
+all: deps fish symlinks nvim lazygit warmup  ## full boxy bootstrap (deps → fish → symlinks → nvim → lazygit → warmup)
 
 help:  ## list targets
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -53,6 +54,12 @@ nvim:  ## install Neovim $(NVIM_VERSION) to ~/.local/bin (tarball → source fal
 	@# Symlink into /usr/local/bin so any shell finds it without PATH changes.
 	sudo ln -sf "$$HOME/.local/bin/nvim" /usr/local/bin/nvim
 	@echo "nvim: $$(/usr/local/bin/nvim --version | head -1)"
+
+lazygit:  ## install lazygit $(LAZYGIT_VERSION) to ~/.local/bin (prebuilt tarball)
+	@LAZYGIT_VERSION="$(LAZYGIT_VERSION)" bash -c "$$LAZYGIT_INSTALL_SCRIPT"
+	@# Symlink into /usr/local/bin so any shell finds it without PATH changes.
+	sudo ln -sf "$$HOME/.local/bin/lazygit" /usr/local/bin/lazygit
+	@echo "lazygit: $$(/usr/local/bin/lazygit --version | head -1)"
 
 warmup:  ## kick Lazy restore + TSInstallSync + Mason in background
 	@bash -c "$$NVIM_WARMUP_SCRIPT"
@@ -115,6 +122,41 @@ make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFIX="$$HOME/.local" -j"$$j
 make install
 endef
 export NVIM_INSTALL_SCRIPT
+
+define LAZYGIT_INSTALL_SCRIPT
+set -euo pipefail
+export PATH="$$HOME/.local/bin:$$PATH"
+
+desired="$${LAZYGIT_VERSION}"              # e.g. v0.44.1
+stripped="$${desired#v}"                    # release tarballs drop the leading v
+if command -v lazygit >/dev/null 2>&1; then
+	current="$$(lazygit --version 2>/dev/null | tr ',' '\n' | awk -F= '$$1 ~ /^[[:space:]]*version$$/ {gsub(/^[[:space:]]+/, "", $$2); print $$2; exit}')"
+	if [[ "v$$current" == "$$desired" || "$$current" == "$$desired" ]]; then
+		echo "lazygit $$desired already installed"
+		exit 0
+	fi
+fi
+
+work_dir="$$HOME/.cache/lazygit-install-$${desired}"
+tarball="$$work_dir/lazygit.tar.gz"
+release_url="https://github.com/jesseduffield/lazygit/releases/download/$${desired}/lazygit_$${stripped}_Linux_x86_64.tar.gz"
+install_dir="$$HOME/.local/opt/lazygit-$${desired}"
+
+mkdir -p "$$HOME/.local/bin" "$$HOME/.local/opt" "$$work_dir"
+
+curl -fL --retry 3 --retry-delay 2 -o "$$tarball" "$$release_url"
+rm -rf "$$install_dir"
+mkdir -p "$$install_dir"
+tar -xzf "$$tarball" -C "$$install_dir" lazygit
+ln -sf "$$install_dir/lazygit" "$$HOME/.local/bin/lazygit"
+installed="$$("$$HOME/.local/bin/lazygit" --version 2>/dev/null | tr ',' '\n' | awk -F= '$$1 ~ /^[[:space:]]*version$$/ {gsub(/^[[:space:]]+/, "", $$2); print $$2; exit}')"
+if [[ "v$$installed" != "$$desired" && "$$installed" != "$$desired" ]]; then
+	echo "lazygit install verification failed: got '$$installed', expected '$$desired'" >&2
+	exit 1
+fi
+echo "Installed lazygit $$desired from GitHub release tarball"
+endef
+export LAZYGIT_INSTALL_SCRIPT
 
 define NVIM_WARMUP_SCRIPT
 set -e
