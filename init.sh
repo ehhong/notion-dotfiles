@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Boxy bootstrap: runs as notion (NOT root). Uses sudo inline for apt so that
-# GH_TOKEN (which boxies inject into notion's interactive session but not into
-# root's env) is preserved for `gh repo clone` on private repos.
+# Boxy bootstrap: runs as notion (NOT root) so `sudo` works inline for apt.
 #
 # Fails loudly: preflight checks exit with a clear message, an ERR trap reports
 # the failing line + command, every step echoes to both stdout and
@@ -9,10 +7,9 @@
 # (~/.boxy-init-success) only if every step completes. Check that sentinel when
 # debugging "why didn't my boxy bootstrap?" — boxy's own `.boxy_initialized`
 # marker is written regardless of this script's exit status.
-
 set -euo pipefail
 
-SLUG=ehhong/notion-dotfiles
+REPO=https://github.com/ehhong/notion-dotfiles.git
 DEST=$HOME/notion-dotfiles
 LOG=$HOME/.cache/boxy-init.log
 SUCCESS_SENTINEL=$HOME/.boxy-init-success
@@ -42,23 +39,8 @@ if [[ "$(id -un)" != "notion" ]]; then
 	fail "This script must be run as notion, not $(id -un). Invoke without sudo."
 fi
 
-step "Preflight: verifying tooling and GitHub access"
-
-command -v gh >/dev/null 2>&1 || fail "gh CLI not found on PATH. Boxy should install it; check the base image."
+step "Preflight: verifying tooling"
 command -v sudo >/dev/null 2>&1 || fail "sudo not found on PATH."
-
-# GH_TOKEN is how boxy injects credentials for private-repo cloning. Without it
-# `gh repo clone` can silently fall through to an interactive prompt (no tty →
-# hangs or errors), so fail fast instead.
-[[ -n "${GH_TOKEN:-}" ]] || fail "GH_TOKEN is not set. Boxy normally injects it; re-check the boxy profile."
-
-if ! gh auth status >/dev/null 2>&1; then
-	fail "gh is not authenticated. Run 'gh auth status' to see details."
-fi
-
-if ! gh repo view "$SLUG" >/dev/null 2>&1; then
-	fail "gh cannot access $SLUG. Confirm the GH_TOKEN scopes include 'repo' and the account has access."
-fi
 
 step "Installing apt prerequisites (git, make)"
 export DEBIAN_FRONTEND=noninteractive
@@ -70,8 +52,8 @@ if [[ -d "$DEST/.git" ]]; then
 	cd "$DEST"
 	git pull --ff-only
 else
-	step "Cloning $SLUG into $DEST"
-	gh repo clone "$SLUG" "$DEST"
+	step "Cloning $REPO into $DEST"
+	git clone "$REPO" "$DEST"
 	cd "$DEST"
 fi
 
