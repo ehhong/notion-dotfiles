@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Boxy bootstrap: runs as notion (NOT root) so `sudo` works inline for apt.
+# Boxy bootstrap: needs to run as the notion user so $HOME, the dotfiles
+# clone, and symlinks all land in /home/notion. Boxy invokes this via
+# `sudo -n -- ~/.boxy/profile/init.sh` (i.e. as root), so when invoked as root
+# we re-exec as notion immediately; inline `sudo` calls below still work via
+# passwordless sudo for apt.
 #
 # Fails loudly: preflight checks exit with a clear message, an ERR trap reports
 # the failing line + command, every step echoes to both stdout and
@@ -8,6 +12,13 @@
 # debugging "why didn't my boxy bootstrap?" — boxy's own `.boxy_initialized`
 # marker is written regardless of this script's exit status.
 set -euo pipefail
+
+# Boxy invokes this script as root via sudo. Drop privileges to notion before
+# any HOME-based path resolution so logs, the clone, and symlinks land in
+# /home/notion rather than /root.
+if [[ "$(id -un)" == "root" ]]; then
+	exec sudo -u notion -- "$0" "$@"
+fi
 
 REPO=https://github.com/ehhong/notion-dotfiles.git
 DEST=$HOME/notion-dotfiles
@@ -36,7 +47,7 @@ rm -f "$SUCCESS_SENTINEL"
 step "Starting boxy bootstrap ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
 
 if [[ "$(id -un)" != "notion" ]]; then
-	fail "This script must be run as notion, not $(id -un). Invoke without sudo."
+	fail "This script must be run as notion (or root, which re-execs as notion), not $(id -un)."
 fi
 
 step "Preflight: verifying tooling"
